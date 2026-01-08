@@ -1,4 +1,4 @@
-import {describe, expect, jest} from "@jest/globals"
+import {beforeEach, describe, expect, jest} from "@jest/globals"
 import {WebSocket, Server as WebSocketServer} from "mock-socket"
 import {encode} from "./serializer"
 import {Socket, LongPoll} from "../js/phoenix"
@@ -858,6 +858,92 @@ describe("with transports", function (){
         "payload": "payload",
         "ref": "ref",
         "join_ref": null
+      })
+    })
+  })
+
+  describe("triggerStateCallbacks", () => {
+    beforeEach(() => {
+        socket = new Socket("/socket")
+      });
+
+    test("does not call other types of callbacks", () => {
+      const spyOpen = jest.fn();
+      const spyClose = jest.fn();
+      const spyError = jest.fn();
+      const spyMessage = jest.fn();
+      socket.onOpen(spyOpen);
+      socket.triggerStateCallbacks("open")
+
+      expect(spyOpen).toHaveBeenCalledTimes(1)
+      expect(spyClose).not.toHaveBeenCalled()
+      expect(spyError).not.toHaveBeenCalled()
+      expect(spyMessage).not.toHaveBeenCalled()
+    })
+
+    test("Catches error", () => {
+      const spy1 = jest.fn(() => {
+        throw new Error("foo")
+      })
+      socket.onOpen(spy1);
+
+      const spy2 = jest.fn()
+      socket.onOpen(spy2)
+
+      const spyLog = jest.fn()
+      socket.logger = spyLog
+
+      socket.triggerStateCallbacks("open")
+
+      expect(spyLog).toHaveBeenCalledWith("error", "error in open callback", expect.any(Error))
+      expect(spy2).toHaveBeenCalled()
+    })
+
+    describe.each([
+      {
+        name: "open",
+        args: []
+      },
+      {
+        name: "close",
+        args: [1]
+      },
+      {
+        name: "error",
+        args: [1, 2, 3]
+      },
+      {
+        name: "message",
+        args: [1]
+      }
+    ])("$name", ({name, args}) => {
+      test("gets called", () => {
+        const spy = jest.fn()
+        socket.stateChangeCallbacks[name].push((["spy", spy]))
+        socket.triggerStateCallbacks(name, ...args)
+        expect(spy).toHaveBeenCalledTimes(1)
+      })
+
+      test("gets called with correct amount of args", () => {
+        const spy = jest.fn()
+        socket.stateChangeCallbacks[name].push((["spy", spy]))
+        socket.triggerStateCallbacks(name, ...args)
+        expect(spy).toHaveBeenCalledWith(...args)
+      })
+
+      test("all callbacks get called", () => {
+        const spy1 = jest.fn()
+        socket.stateChangeCallbacks[name].push((["spy1", spy1]))
+        const spy2 = jest.fn()
+        socket.stateChangeCallbacks[name].push((["spy2", spy2]))
+        const spy3 = jest.fn()
+        socket.stateChangeCallbacks[name].push((["spy3", spy3]))
+
+        socket.triggerStateCallbacks(name, ...args)
+
+        expect(spy1).toHaveBeenCalledTimes(1)
+        expect(spy2).toHaveBeenCalledTimes(1)
+        expect(spy3).toHaveBeenCalledTimes(1)
       })
     })
   })

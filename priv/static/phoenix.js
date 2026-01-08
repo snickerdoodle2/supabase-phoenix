@@ -1502,13 +1502,7 @@ var Phoenix = (() => {
       if (this.autoSendHeartbeat) {
         this.resetHeartbeat();
       }
-      this.stateChangeCallbacks.open.forEach(([, callback]) => {
-        try {
-          callback();
-        } catch (e) {
-          this.log("error", "error in open callback", e);
-        }
-      });
+      this.triggerStateCallbacks("open");
     }
     /**
      * @private
@@ -1602,13 +1596,7 @@ var Phoenix = (() => {
       if (!this.closeWasClean) {
         this.reconnectTimer.scheduleTimeout();
       }
-      this.stateChangeCallbacks.close.forEach(([, callback]) => {
-        try {
-          callback(event);
-        } catch (e) {
-          this.log("error", "error in close callback", e);
-        }
-      });
+      this.triggerStateCallbacks("close", event);
     }
     /**
      * @private
@@ -1618,13 +1606,7 @@ var Phoenix = (() => {
       if (this.hasLogger()) this.log("transport", error);
       let transportBefore = this.transport;
       let establishedBefore = this.establishedConnections;
-      this.stateChangeCallbacks.error.forEach(([, callback]) => {
-        try {
-          callback(error, transportBefore, establishedBefore);
-        } catch (e) {
-          this.log("error", "error in error callback", e);
-        }
-      });
+      this.triggerStateCallbacks("error", error, transportBefore, establishedBefore);
       if (transportBefore === this.transport || establishedBefore > 0) {
         this.triggerChanError();
       }
@@ -1773,15 +1755,28 @@ var Phoenix = (() => {
           }
           channel.trigger(event, payload, ref, join_ref);
         }
-        for (let i = 0; i < this.stateChangeCallbacks.message.length; i++) {
-          let [, callback] = this.stateChangeCallbacks.message[i];
-          try {
-            callback(msg);
-          } catch (e) {
-            this.log("error", "error in message callback", e);
-          }
-        }
+        this.triggerStateCallbacks("message", msg);
       });
+    }
+    /**
+     * @private
+     * @template {keyof SocketStateChangeCallbacks} K
+     * @param {K} event
+     * @param {...Parameters<SocketStateChangeCallbacks[K][number][1]>} args
+     * @returns {void}
+     */
+    triggerStateCallbacks(event, ...args) {
+      try {
+        this.stateChangeCallbacks[event].forEach(([_, callback]) => {
+          try {
+            callback(...args);
+          } catch (e) {
+            this.log("error", `error in ${event} callback`, e);
+          }
+        });
+      } catch (e) {
+        this.log("error", `error triggering ${event} callbacks`, e);
+      }
     }
     leaveOpenTopic(topic) {
       let dupChannel = this.channels.find((c) => c.topic === topic && (c.isJoined() || c.isJoining()));

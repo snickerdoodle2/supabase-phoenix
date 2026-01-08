@@ -253,6 +253,14 @@ export default class Socket {
     * @param {MessageEvent<any>} rawMessage
     */
     onConnMessage(rawMessage: MessageEvent<any>): void;
+    /**
+     * @private
+     * @template {keyof SocketStateChangeCallbacks} K
+     * @param {K} event
+     * @param {...Parameters<SocketStateChangeCallbacks[K][number][1]>} args
+     * @returns {void}
+     */
+    private triggerStateCallbacks;
     leaveOpenTopic(topic: any): void;
 }
 import type { SocketStateChangeCallbacks } from "./types";
