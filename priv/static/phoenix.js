@@ -1502,7 +1502,13 @@ var Phoenix = (() => {
       if (this.autoSendHeartbeat) {
         this.resetHeartbeat();
       }
-      this.stateChangeCallbacks.open.forEach(([, callback]) => callback());
+      this.stateChangeCallbacks.open.forEach(([, callback]) => {
+        try {
+          callback();
+        } catch (e) {
+          this.log("error", "error in open callback", e);
+        }
+      });
     }
     /**
      * @private
@@ -1596,7 +1602,13 @@ var Phoenix = (() => {
       if (!this.closeWasClean) {
         this.reconnectTimer.scheduleTimeout();
       }
-      this.stateChangeCallbacks.close.forEach(([, callback]) => callback(event));
+      this.stateChangeCallbacks.close.forEach(([, callback]) => {
+        try {
+          callback(event);
+        } catch (e) {
+          this.log("error", "error in close callback", e);
+        }
+      });
     }
     /**
      * @private
@@ -1607,7 +1619,11 @@ var Phoenix = (() => {
       let transportBefore = this.transport;
       let establishedBefore = this.establishedConnections;
       this.stateChangeCallbacks.error.forEach(([, callback]) => {
-        callback(error, transportBefore, establishedBefore);
+        try {
+          callback(error, transportBefore, establishedBefore);
+        } catch (e) {
+          this.log("error", "error in error callback", e);
+        }
       });
       if (transportBefore === this.transport || establishedBefore > 0) {
         this.triggerChanError();
@@ -1759,7 +1775,11 @@ var Phoenix = (() => {
         }
         for (let i = 0; i < this.stateChangeCallbacks.message.length; i++) {
           let [, callback] = this.stateChangeCallbacks.message[i];
-          callback(msg);
+          try {
+            callback(msg);
+          } catch (e) {
+            this.log("error", "error in message callback", e);
+          }
         }
       });
     }
