@@ -141,7 +141,7 @@ export type HeartbeatStatus = "sent" | "ok" | "error" | "timeout" | "disconnecte
 /**
  * SOCKET
  */
-export type HeartbeatCallback = (status: HeartbeatStatus) => void;
+export type HeartbeatCallback = (status: HeartbeatStatus, latency?: number) => void;
 /**
  * SOCKET
  */
@@ -194,7 +194,7 @@ export type SocketOptions = {
      */
     autoSendHeartbeat?: boolean | undefined;
     /**
-     * - The optional function called after heartbeat status change.
+     * - The optional function to handle heartbeat status and latency.
      */
     heartbeatCallback?: HeartbeatCallback | undefined;
     /**

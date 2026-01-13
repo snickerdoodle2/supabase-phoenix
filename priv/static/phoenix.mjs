@@ -1198,6 +1198,7 @@ var Socket = class {
     this.vsn = opts.vsn || DEFAULT_VSN;
     this.heartbeatTimeoutTimer = null;
     this.heartbeatTimer = null;
+    this.heartbeatSentAt = null;
     this.pendingHeartbeatRef = null;
     this.reconnectTimer = new Timer(async () => {
       if (this.pageHidden) {
@@ -1478,6 +1479,7 @@ var Socket = class {
   heartbeatTimeout() {
     if (this.pendingHeartbeatRef) {
       this.pendingHeartbeatRef = null;
+      this.heartbeatSentAt = null;
       if (this.hasLogger()) {
         this.log("transport", "heartbeat timeout. Attempting to re-establish connection");
       }
@@ -1683,6 +1685,7 @@ var Socket = class {
       return;
     }
     this.pendingHeartbeatRef = this.makeRef();
+    this.heartbeatSentAt = Date.now();
     this.push({ topic: "phoenix", event: "heartbeat", payload: {}, ref: this.pendingHeartbeatRef });
     try {
       this.heartbeatCallback("sent");
@@ -1704,13 +1707,15 @@ var Socket = class {
     this.decode(rawMessage.data, (msg) => {
       let { topic, event, payload, ref, join_ref } = msg;
       if (ref && ref === this.pendingHeartbeatRef) {
+        const latency = this.heartbeatSentAt ? Date.now() - this.heartbeatSentAt : void 0;
         this.clearHeartbeats();
         try {
-          this.heartbeatCallback(payload.status === "ok" ? "ok" : "error");
+          this.heartbeatCallback(payload.status === "ok" ? "ok" : "error", latency);
         } catch (e) {
           this.log("error", "error in heartbeat callback", e);
         }
         this.pendingHeartbeatRef = null;
+        this.heartbeatSentAt = null;
         if (this.autoSendHeartbeat) {
           this.heartbeatTimer = setTimeout(() => this.sendHeartbeat(), this.heartbeatIntervalMs);
         }

@@ -544,7 +544,7 @@ describe("with transports", function (){
       const ref = socket.pendingHeartbeatRef
       const data = {ref, payload: {status: "ok"}}
       socket.conn.onmessage({data: encode(data)})
-      expect(spy).toHaveBeenCalledWith("ok")
+      expect(spy).toHaveBeenCalledWith("ok", expect.any(Number))
     })
 
     it("error", () => {
@@ -554,7 +554,30 @@ describe("with transports", function (){
       const ref = socket.pendingHeartbeatRef
       const data = {ref, payload: {status: "error"}}
       socket.conn.onmessage({data: encode(data)})
-      expect(spy).toHaveBeenCalledWith("error")
+      expect(spy).toHaveBeenCalledWith("error", expect.any(Number))
+    })
+
+    it("latency", () => {
+        let latency
+
+        const spy = jest.fn((status, reportedLatency) => {
+          latency = reportedLatency
+        })
+        socket.onHeartbeat(spy)
+        socket.sendHeartbeat()
+        const ref = socket.pendingHeartbeatRef
+        const data = {ref, payload: {status: "ok"}}
+
+        const diff = 60000
+
+        socket.heartbeatSentAt = Date.now() - diff
+        socket.conn.onmessage({data: encode(data)})
+
+        expect(spy).toHaveBeenCalled()
+        expect(socket.pendingHeartbeatRef).toBe(null)
+        expect(socket.heartbeatSentAt).toBe(null)
+        expect(latency).toBeGreaterThanOrEqual(diff)
+        expect(latency).toBeLessThan(diff + 1000)
     })
   })
 

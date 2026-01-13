@@ -153,6 +153,8 @@ export default class Socket {
     this.heartbeatTimeoutTimer = null
     /** @type{ReturnType<typeof setTimeout>} */
     this.heartbeatTimer = null
+    /** @type{number | null} */
+    this.heartbeatSentAt = null
     /** @type{?string} */
     this.pendingHeartbeatRef = null
     /** @type{Timer} */
@@ -440,6 +442,7 @@ export default class Socket {
   heartbeatTimeout(){
     if(this.pendingHeartbeatRef){
       this.pendingHeartbeatRef = null
+      this.heartbeatSentAt = null
       if(this.hasLogger()){ this.log("transport", "heartbeat timeout. Attempting to re-establish connection") }
       try {
         this.heartbeatCallback("timeout")
@@ -638,6 +641,7 @@ export default class Socket {
     }
     if(this.pendingHeartbeatRef){ return }
     this.pendingHeartbeatRef = this.makeRef()
+    this.heartbeatSentAt = Date.now();
     this.push({topic: "phoenix", event: "heartbeat", payload: {}, ref: this.pendingHeartbeatRef})
     try {
       this.heartbeatCallback("sent")
@@ -661,13 +665,15 @@ export default class Socket {
     this.decode(rawMessage.data, msg => {
       let {topic, event, payload, ref, join_ref} = msg
       if(ref && ref === this.pendingHeartbeatRef){
+        const latency = this.heartbeatSentAt ? Date.now() - this.heartbeatSentAt : undefined
         this.clearHeartbeats()
         try {
-          this.heartbeatCallback(payload.status === "ok" ? "ok" : "error")
+          this.heartbeatCallback(payload.status === "ok" ? "ok" : "error", latency)
         } catch (e) {
           this.log('error', 'error in heartbeat callback', e)
         }
         this.pendingHeartbeatRef = null
+        this.heartbeatSentAt = null
         if (this.autoSendHeartbeat) {
           this.heartbeatTimer = setTimeout(() => this.sendHeartbeat(), this.heartbeatIntervalMs)
         }

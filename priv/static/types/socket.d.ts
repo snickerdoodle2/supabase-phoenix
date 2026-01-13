@@ -81,6 +81,8 @@ export default class Socket {
     heartbeatTimeoutTimer: ReturnType<typeof setTimeout>;
     /** @type{ReturnType<typeof setTimeout>} */
     heartbeatTimer: ReturnType<typeof setTimeout>;
+    /** @type{number | null} */
+    heartbeatSentAt: number | null;
     /** @type{?string} */
     pendingHeartbeatRef: string | null;
     /** @type{Timer} */

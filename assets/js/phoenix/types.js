@@ -89,7 +89,7 @@
  *   message: [string, SocketOnMessage][]
  * })} SocketStateChangeCallbacks
  * @typedef {'sent' | 'ok' | 'error' | 'timeout' | 'disconnected'} HeartbeatStatus
- * @typedef {(status: HeartbeatStatus) => void} HeartbeatCallback
+ * @typedef {(status: HeartbeatStatus, latency?: number) => void} HeartbeatCallback
  *
  *
  *
@@ -123,7 +123,7 @@
  *
  * Defaults to true.
  *
- * @property {HeartbeatCallback} [heartbeatCallback] - The optional function called after heartbeat status change.
+ * @property {HeartbeatCallback} [heartbeatCallback] - The optional function to handle heartbeat status and latency.
  *
  * @property {(tries: number) => number} [reconnectAfterMs] - The optional function that returns the
  * socket reconnect interval, in milliseconds.
