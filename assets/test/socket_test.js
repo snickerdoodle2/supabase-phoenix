@@ -41,6 +41,7 @@ describe("with transports", function (){
       expect(socket.logger).toBeNull()
       expect(socket.binaryType).toBe("arraybuffer")
       expect(typeof socket.reconnectAfterMs).toBe("function")
+      expect(typeof socket.heartbeatCallback).toBe("function")
     })
 
     it("supports closure or literal params", function (){
@@ -55,6 +56,7 @@ describe("with transports", function (){
       const customTransport = function transport(){ }
       const customLogger = function logger(){ }
       const customReconnect = function reconnect(){ }
+      const customHeartbeatCallback = jest.fn()
 
       socket = new Socket("/socket", {
         timeout: 40000,
@@ -64,6 +66,7 @@ describe("with transports", function (){
         logger: customLogger,
         reconnectAfterMs: customReconnect,
         params: {one: "two"},
+        heartbeatCallback: customHeartbeatCallback
       })
 
       expect(socket.timeout).toBe(40000)
@@ -72,6 +75,7 @@ describe("with transports", function (){
       expect(socket.transport).toBe(customTransport)
       expect(socket.logger).toBe(customLogger)
       expect(socket.params()).toEqual({one: "two"})
+      expect(socket.heartbeatCallback).toBe(customHeartbeatCallback)
     })
 
     describe("with Websocket", function (){
@@ -557,6 +561,19 @@ describe("with transports", function (){
       expect(spy).toHaveBeenCalledWith("error", expect.any(Number))
     })
 
+    it("calls multiple times", () => {
+      const spy = jest.fn()
+      socket.onHeartbeat(spy)
+      socket.sendHeartbeat()
+      const ref = socket.pendingHeartbeatRef
+      const data = {ref, payload: {status: "ok"}}
+      socket.conn.onmessage({data: encode(data)})
+
+      expect(spy).toHaveBeenCalledTimes(2)
+      expect(spy).toHaveBeenNthCalledWith(1, 'sent')
+      expect(spy).toHaveBeenNthCalledWith(2, 'ok', expect.any(Number))
+    })
+
     it("latency", () => {
         let latency
 
@@ -578,6 +595,39 @@ describe("with transports", function (){
         expect(socket.heartbeatSentAt).toBe(null)
         expect(latency).toBeGreaterThanOrEqual(diff)
         expect(latency).toBeLessThan(diff + 1000)
+    })
+
+    describe("handles errors gracefully", () => {
+      it("sendHeartbeat", () => {
+        const logSpy = jest.fn()
+        const cbSpy = jest.fn().mockImplementation(() => {
+          throw new Error('Callback error')
+        })
+        socket.onHeartbeat(cbSpy)
+        socket.logger = logSpy
+
+        expect(() => socket.sendHeartbeat()).not.toThrow()
+        expect(cbSpy).toHaveBeenCalledWith("sent")
+        expect(logSpy).toHaveBeenCalledWith("error", "error in heartbeat callback", expect.any(Error))
+      })
+
+      it("onConnMessage", () => {
+        const logSpy = jest.fn()
+        const cbSpy = jest.fn().mockImplementation(() => {
+          throw new Error('Callback error')
+        })
+        socket.logger = logSpy
+
+        socket.sendHeartbeat()
+        socket.onHeartbeat(cbSpy)
+        const ref = socket.pendingHeartbeatRef
+        const data = {ref, payload: {status: "ok"}}
+
+        expect(() => socket.conn.onmessage({data: encode(data)})).not.toThrow()
+
+        expect(cbSpy).toHaveBeenCalledWith("ok", expect.any(Number))
+        expect(logSpy).toHaveBeenCalledWith("error", "error in heartbeat callback", expect.any(Error))
+      })
     })
   })
 
