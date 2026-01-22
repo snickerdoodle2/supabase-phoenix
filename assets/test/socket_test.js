@@ -352,6 +352,15 @@ describe("with transports", function (){
       const [foundChannel] = socket.channels
       expect(foundChannel).toBe(channel)
     })
+
+    it("gets all channels", () => {
+      expect(socket.channels.length).toBe(0)
+      const chan1 = channel = socket.channel("topic1")
+      const chan2 = channel = socket.channel("topic2")
+
+      expect(socket.channels.length).toBe(2)
+      expect(socket.channels).toStrictEqual([chan1, chan2])
+    })
   })
 
   describe("remove", function (){
