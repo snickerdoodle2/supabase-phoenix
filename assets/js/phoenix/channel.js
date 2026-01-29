@@ -60,6 +60,7 @@ export default class Channel {
     })
     this.joinPush.receive("error", () => {
       this.state = CHANNEL_STATES.errored
+      if(this.socket.hasLogger()) this.socket.log("channel", `error ${this.topic}`, reason)
       if(this.socket.isConnected()){ this.rejoinTimer.scheduleTimeout() }
     })
     this.onClose(() => {
