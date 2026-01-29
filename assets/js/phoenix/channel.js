@@ -65,7 +65,7 @@ export default class Channel {
     })
     this.onClose(() => {
       this.rejoinTimer.reset()
-      if(this.socket.hasLogger()) this.socket.log("channel", `close ${this.topic} ${this.joinRef()}`)
+      if(this.socket.hasLogger()) this.socket.log("channel", `close ${this.topic}`)
       this.state = CHANNEL_STATES.closed
       this.socket.remove(this)
     })
@@ -76,7 +76,7 @@ export default class Channel {
       if(this.socket.isConnected()){ this.rejoinTimer.scheduleTimeout() }
     })
     this.joinPush.receive("timeout", () => {
-      if(this.socket.hasLogger()) this.socket.log("channel", `timeout ${this.topic} (${this.joinRef()})`, this.joinPush.timeout)
+      if(this.socket.hasLogger()) this.socket.log("channel", `timeout ${this.topic}`, this.joinPush.timeout)
       let leavePush = new Push(this, CHANNEL_EVENTS.leave, closure({}), this.timeout)
       leavePush.send()
       this.state = CHANNEL_STATES.errored
