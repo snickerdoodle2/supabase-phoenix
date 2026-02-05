@@ -491,28 +491,28 @@ describe("with transports", function (){
       expect(sendSpy).not.toHaveBeenCalledWith(data)
     })
 
-    it('handles heartbeat timeout and triggers reconnection', (done) => {
+    it("handles heartbeat timeout and triggers reconnection", (done) => {
       jest.useFakeTimers()
       socket.conn.readyState = 1 // open
 
       const timeoutSpy = jest.spyOn(socket, "heartbeatTimeout")
-      const heartbeatCallbackSpy = jest.spyOn(socket, 'heartbeatCallback');
-      const logSpy = jest.fn();
-      const closeSpy = jest.fn();
+      const heartbeatCallbackSpy = jest.spyOn(socket, "heartbeatCallback")
+      const logSpy = jest.fn()
+      const closeSpy = jest.fn()
 
-      socket.conn.close = closeSpy;
-      socket.logger = logSpy;
+      socket.conn.close = closeSpy
+      socket.logger = logSpy
 
-      socket.sendHeartbeat();
+      socket.sendHeartbeat()
       jest.advanceTimersByTime(30010)
       expect(timeoutSpy).toHaveBeenCalled()
-      expect(closeSpy).toHaveBeenCalledWith(1000, 'heartbeat timeout')
+      expect(closeSpy).toHaveBeenCalledWith(1000, "heartbeat timeout")
       expect(logSpy).toHaveBeenCalledWith(
-        'transport',
-        'heartbeat timeout. Attempting to re-establish connection',
+        "transport",
+        "heartbeat timeout. Attempting to re-establish connection",
         undefined
       )
-      expect(heartbeatCallbackSpy).toHaveBeenCalledWith('timeout')
+      expect(heartbeatCallbackSpy).toHaveBeenCalledWith("timeout")
       expect(socket.pendingHeartbeatRef).toBe(null)
 
       jest.useRealTimers()
@@ -579,38 +579,38 @@ describe("with transports", function (){
       socket.conn.onmessage({data: encode(data)})
 
       expect(spy).toHaveBeenCalledTimes(2)
-      expect(spy).toHaveBeenNthCalledWith(1, 'sent')
-      expect(spy).toHaveBeenNthCalledWith(2, 'ok', expect.any(Number))
+      expect(spy).toHaveBeenNthCalledWith(1, "sent")
+      expect(spy).toHaveBeenNthCalledWith(2, "ok", expect.any(Number))
     })
 
     it("latency", () => {
-        let latency
+      let latency
 
-        const spy = jest.fn((status, reportedLatency) => {
-          latency = reportedLatency
-        })
-        socket.onHeartbeat(spy)
-        socket.sendHeartbeat()
-        const ref = socket.pendingHeartbeatRef
-        const data = {ref, payload: {status: "ok"}}
+      const spy = jest.fn((status, reportedLatency) => {
+        latency = reportedLatency
+      })
+      socket.onHeartbeat(spy)
+      socket.sendHeartbeat()
+      const ref = socket.pendingHeartbeatRef
+      const data = {ref, payload: {status: "ok"}}
 
-        const diff = 60000
+      const diff = 60000
 
-        socket.heartbeatSentAt = Date.now() - diff
-        socket.conn.onmessage({data: encode(data)})
+      socket.heartbeatSentAt = Date.now() - diff
+      socket.conn.onmessage({data: encode(data)})
 
-        expect(spy).toHaveBeenCalled()
-        expect(socket.pendingHeartbeatRef).toBe(null)
-        expect(socket.heartbeatSentAt).toBe(null)
-        expect(latency).toBeGreaterThanOrEqual(diff)
-        expect(latency).toBeLessThan(diff + 1000)
+      expect(spy).toHaveBeenCalled()
+      expect(socket.pendingHeartbeatRef).toBe(null)
+      expect(socket.heartbeatSentAt).toBe(null)
+      expect(latency).toBeGreaterThanOrEqual(diff)
+      expect(latency).toBeLessThan(diff + 1000)
     })
 
     describe("handles errors gracefully", () => {
       it("sendHeartbeat", () => {
         const logSpy = jest.fn()
         const cbSpy = jest.fn().mockImplementation(() => {
-          throw new Error('Callback error')
+          throw new Error("Callback error")
         })
         socket.onHeartbeat(cbSpy)
         socket.logger = logSpy
@@ -623,7 +623,7 @@ describe("with transports", function (){
       it("onConnMessage", () => {
         const logSpy = jest.fn()
         const cbSpy = jest.fn().mockImplementation(() => {
-          throw new Error('Callback error')
+          throw new Error("Callback error")
         })
         socket.logger = logSpy
 
@@ -960,8 +960,8 @@ describe("with transports", function (){
       "ok",
       "error"
     ])("triggers onHeartbeat with %s", (msg) => {
-      const spy = jest.fn();
-      socket.onHeartbeat(spy);
+      const spy = jest.fn()
+      socket.onHeartbeat(spy)
 
       const data = encode({ref: "3", event: "phx_reply", payload: {status: msg, response: {}}, topic: "phoenix"})
 
@@ -969,7 +969,7 @@ describe("with transports", function (){
       socket.onConnMessage({data})
 
       expect(spy).toHaveBeenCalledWith(msg, undefined)
-    });
+    })
 
     it("triggers onMessage callback", function (){
       const message = {"topic": "topic", "event": "event", "payload": "payload", "ref": "ref"}
@@ -989,15 +989,15 @@ describe("with transports", function (){
 
   describe("triggerStateCallbacks", () => {
     beforeEach(() => {
-        socket = new Socket("/socket")
-      });
+      socket = new Socket("/socket")
+    })
 
     test("does not call other types of callbacks", () => {
-      const spyOpen = jest.fn();
-      const spyClose = jest.fn();
-      const spyError = jest.fn();
-      const spyMessage = jest.fn();
-      socket.onOpen(spyOpen);
+      const spyOpen = jest.fn()
+      const spyClose = jest.fn()
+      const spyError = jest.fn()
+      const spyMessage = jest.fn()
+      socket.onOpen(spyOpen)
       socket.triggerStateCallbacks("open")
 
       expect(spyOpen).toHaveBeenCalledTimes(1)
@@ -1010,7 +1010,7 @@ describe("with transports", function (){
       const spy1 = jest.fn(() => {
         throw new Error("foo")
       })
-      socket.onOpen(spy1);
+      socket.onOpen(spy1)
 
       const spy2 = jest.fn()
       socket.onOpen(spy2)
@@ -1075,7 +1075,7 @@ describe("with transports", function (){
 
   describe("beforeReconnect", () => {
     test("is called", () => {
-      const spy = jest.fn();
+      const spy = jest.fn()
       socket = new Socket("/socket", {
         beforeReconnect: spy
       })
