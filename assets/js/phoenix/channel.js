@@ -257,7 +257,7 @@ export default class Channel {
    *
    * @type{ChannelFilterBindings}
    */
-  filterBindings(binding, payload, ref) { return true; }
+  filterBindings(binding, payload, ref){ return true }
 
   isMember(topic, event, payload, joinRef){
     if(this.topic !== topic){ return false }
